@@ -126,19 +126,99 @@ def refresh_species():
 def open_new_entry_popup():
     popup = tk.Toplevel(root)
     popup.title("New Entry")
-    popup.geometry("400x450")
+    popup.geometry("400x500")
 
-    # Fish ID
+    def fetch_suggestions(field, value):
+        """Fetch suggestions for autosuggestion dropdown."""
+        conn = sqlite3.connect('fishdex.db')
+        cursor = conn.cursor()
+        query = f"""
+            SELECT ID, commonName, scientificName FROM ReferenceSpecies
+            WHERE {field} LIKE ? LIMIT 10;
+        """
+        cursor.execute(query, (f"%{value}%",))
+        suggestions = cursor.fetchall()
+        conn.close()
+        return suggestions
+
+    def show_suggestions(entry_widget, field, other_entry, id_entry, dropdown):
+        """Update and display dropdown under the entry field."""
+        value = entry_widget.get()
+        if not value.strip():
+            dropdown.place_forget()  # Hide dropdown when input is empty
+            return
+
+        suggestions = fetch_suggestions(field, value)
+        if not suggestions:
+            dropdown.place_forget()  # Hide dropdown if no suggestions
+            return
+
+        # Populate dropdown with suggestions
+        dropdown.delete(0, "end")
+        for suggestion in suggestions:
+            dropdown.insert("end", f"{suggestion[1]} ({suggestion[2]})")
+
+        # Position the dropdown directly below the entry widget
+        x = entry_widget.winfo_x()
+        y = entry_widget.winfo_y() + entry_widget.winfo_height()
+        dropdown.place(x=x, y=y, width=entry_widget.winfo_width())
+        dropdown.lift()  # Bring the dropdown to the top layer
+
+        def on_select(event):
+            """Handle selection from dropdown."""
+            selected_index = dropdown.curselection()
+            if selected_index:
+                selected = suggestions[selected_index[0]]
+                # Autofill both fields and ID
+                entry_widget.delete(0, "end")
+                entry_widget.insert(0, selected[1] if field == "commonName" else selected[2])
+                other_entry.delete(0, "end")
+                other_entry.insert(0, selected[2] if field == "commonName" else selected[1])
+                id_entry.delete(0, "end")
+                id_entry.insert(0, selected[0])
+                dropdown.place_forget()  # Hide dropdown after selection
+
+        dropdown.bind("<<ListboxSelect>>", on_select)
+
+    # Common Name Field
+    tk.Label(popup, text="Common Name:").pack(pady=5)
+    common_name_entry = ttk.Entry(popup, width=30)
+    common_name_entry.pack(pady=5)
+    common_name_dropdown = tk.Listbox(popup, height=5)
+
+    common_name_entry.bind(
+        "<KeyRelease>", lambda e: show_suggestions(
+            common_name_entry, "commonName", species_name_entry, fish_id_entry, common_name_dropdown
+        )
+    )
+    common_name_entry.bind("<FocusIn>", lambda e: common_name_dropdown.lift())
+    common_name_entry.bind("<FocusOut>", lambda e: common_name_dropdown.place_forget())
+
+    # Scientific Name Field
+    tk.Label(popup, text="Scientific Name:").pack(pady=5)
+    species_name_entry = ttk.Entry(popup, width=30)
+    species_name_entry.pack(pady=5)
+    species_name_dropdown = tk.Listbox(popup, height=5)
+
+    species_name_entry.bind(
+        "<KeyRelease>", lambda e: show_suggestions(
+            species_name_entry, "scientificName", common_name_entry, fish_id_entry, species_name_dropdown
+        )
+    )
+    species_name_entry.bind("<FocusIn>", lambda e: species_name_dropdown.lift())
+    species_name_entry.bind("<FocusOut>", lambda e: species_name_dropdown.place_forget())
+
+    # Fish ID Field
     tk.Label(popup, text="Fish ID:").pack(pady=5)
     fish_id_entry = ttk.Entry(popup, width=30)
     fish_id_entry.pack(pady=5)
 
-    # Location
+    # Location Field
     tk.Label(popup, text="Location Name:").pack(pady=5)
     location_name_entry = ttk.Entry(popup, width=30)
     location_name_entry.pack(pady=5)
 
-    # Datetime
+    # Datetime Field
     tk.Label(popup, text="Datetime (YYYY-MM-DD HH:MM):").pack(pady=5)
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     datetime_entry = ttk.Entry(popup, width=30)
@@ -166,12 +246,14 @@ def open_new_entry_popup():
     # Submit Button
     def submit_entry():
         fish_id = fish_id_entry.get()
+        common_name = common_name_entry.get()
+        scientific_name = species_name_entry.get()
         location_name = location_name_entry.get()
         datetime_value = datetime_entry.get()
         photo_data = getattr(photo_label, 'photo_data', None)  # Retrieve binary data
 
         # Input validation
-        if not fish_id or not location_name or not datetime_value:
+        if not fish_id or not common_name or not scientific_name or not location_name or not datetime_value:
             messagebox.showerror("Error", "All fields except photo are required.")
             return
 
@@ -230,6 +312,7 @@ def open_new_entry_popup():
 
     ttk.Button(popup, text="Submit", command=submit_entry).pack(pady=10)
     ttk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
+
 
 new_entry_button.config(command=open_new_entry_popup)
 
