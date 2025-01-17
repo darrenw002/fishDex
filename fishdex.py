@@ -49,6 +49,26 @@ root.geometry("800x600")  # Set window size
 notebook = ttk.Notebook(root)
 notebook.pack(fill="both", expand=True)
 
+
+def treeview_sort_column(treeview, col, reverse):
+    """Sort Treeview column when the header is clicked."""
+    # Get all items in the Treeview
+    data = [(treeview.set(child, col), child) for child in treeview.get_children('')]
+
+    # Try to sort numerically; fallback to string sorting
+    try:
+        data.sort(key=lambda t: float(t[0]), reverse=reverse)
+    except ValueError:
+        data.sort(key=lambda t: t[0].lower(), reverse=reverse)
+
+    # Rearrange items in sorted order
+    for index, (_, item) in enumerate(data):
+        treeview.move(item, '', index)
+
+    # Reverse sorting for next click
+    treeview.heading(col, command=lambda: treeview_sort_column(treeview, col, not reverse))
+
+
 # --- Home Tab ---
 home_tab = ttk.Frame(notebook)
 notebook.add(home_tab, text="Home")
@@ -63,18 +83,34 @@ quit_button.pack(pady=10)
 catch_log_tab = ttk.Frame(notebook)
 notebook.add(catch_log_tab, text="Catch Log")
 
+# Search Bar Frame
 catch_log_search_frame = ttk.Frame(catch_log_tab)
 catch_log_search_frame.pack(fill="x", pady=5)
 
+# Search Bar
 catch_log_search = ttk.Entry(catch_log_search_frame, width=50)
 catch_log_search.pack(side="left", padx=5)
+catch_log_search.bind("<KeyRelease>", lambda e: refresh_catch_log(filter_text=catch_log_search.get()))
 
-catch_log_table = ttk.Treeview(catch_log_tab, columns=("Catch ID", "Species ID", "Date Caught", "Location"), show="headings")
-catch_log_table.heading("Catch ID", text="Catch ID")
-catch_log_table.heading("Species ID", text="Species ID")
-catch_log_table.heading("Date Caught", text="Date Caught")
-catch_log_table.heading("Location", text="Location")
+# Treeview for Catch Log
+catch_log_table = ttk.Treeview(
+    catch_log_tab,
+    columns=("Catch ID", "Photo", "Common Name", "Scientific Name", "Datetime Caught", "Location"),
+    show="headings"
+)
+catch_log_table.heading("Catch ID", text="Catch ID", command=lambda: treeview_sort_column(catch_log_table, "Catch ID", False))
+catch_log_table.heading("Photo", text="Photo")  # No sorting for Photo column
+catch_log_table.heading("Common Name", text="Common Name", command=lambda: treeview_sort_column(catch_log_table, "Common Name", False))
+catch_log_table.heading("Scientific Name", text="Scientific Name", command=lambda: treeview_sort_column(catch_log_table, "Scientific Name", False))
+catch_log_table.heading("Datetime Caught", text="Datetime Caught", command=lambda: treeview_sort_column(catch_log_table, "Datetime Caught", False))
+catch_log_table.heading("Location", text="Location", command=lambda: treeview_sort_column(catch_log_table, "Location", False))
 catch_log_table.pack(fill="both", expand=True, pady=5)
+
+# Scrollbars for Treeview
+tree_scroll_y = ttk.Scrollbar(catch_log_tab, orient="vertical", command=catch_log_table.yview)
+tree_scroll_y.pack(side="right", fill="y")
+catch_log_table.configure(yscrollcommand=tree_scroll_y.set)
+
 
 # --- Species Tab ---
 species_tab = ttk.Frame(notebook)
@@ -86,41 +122,107 @@ species_search_frame.pack(fill="x", pady=5)
 species_search = ttk.Entry(species_search_frame, width=50)
 species_search.pack(side="left", padx=5)
 
-species_table = ttk.Treeview(species_tab, columns=("Species ID", "Quantity Caught", "Order Discovered"), show="headings")
+species_table = ttk.Treeview(
+    species_tab,
+    columns=("Species ID", "Common Name", "Scientific Name", "Quantity Caught", "Order Discovered", "First Caught Date", "First Location Discovered"),
+    show="headings"
+)
 species_table.heading("Species ID", text="Species ID")
+species_table.heading("Common Name", text="Common Name")
+species_table.heading("Scientific Name", text="Scientific Name")
 species_table.heading("Quantity Caught", text="Quantity Caught")
 species_table.heading("Order Discovered", text="Order Discovered")
+species_table.heading("First Caught Date", text="First Caught Date")
+species_table.heading("First Location Discovered", text="First Location Discovered")
+species_table.pack(fill="both", expand=True, pady=5)
+
 species_table.pack(fill="both", expand=True, pady=5)
 
 # --- Functions to Refresh Data ---
-def refresh_catch_log():
+def refresh_catch_log(filter_text=""):
+    """Refresh the Catch Log Treeview and optionally filter rows."""
+    # Clear the existing rows in the Treeview
     for row in catch_log_table.get_children():
         catch_log_table.delete(row)
+
+    # Connect to the database
     conn = sqlite3.connect('fishdex.db')
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT c.catchID, c.speciesID, c.datetimeCaught, l.locationName 
+
+    # SQL query to fetch data
+    query = '''
+        SELECT
+            c.catchID,  -- Catch ID
+            '[Photo]' AS photo,  -- Placeholder for Photo Thumbnail
+            rs.commonName,  -- Common Name
+            rs.scientificName AS scientificName,  -- Scientific Name
+            c.datetimeCaught,  -- Datetime Caught
+            COALESCE(l.locationName, 'Unknown') AS locationName  -- Location Name
         FROM CatchLog c
-        JOIN Locations l ON c.locationID = l.locationID
-    ''')
+        LEFT JOIN Locations l ON c.locationID = l.locationID
+        LEFT JOIN ReferenceSpecies rs ON c.speciesID = rs.ID
+    '''
+    cursor.execute(query)
     rows = cursor.fetchall()
+
+    # Filter rows if a search filter is provided
+    if filter_text.strip():
+        filter_text = filter_text.lower()
+        rows = [
+            row for row in rows
+            if any(filter_text in str(value).lower() for value in row)
+        ]
+
+    # Insert rows into the Treeview
     for row in rows:
         catch_log_table.insert("", "end", values=row)
+
+    # Close the database connection
     conn.close()
 
+
+
 def refresh_species():
+    # Clear the existing rows in the Treeview
     for row in species_table.get_children():
         species_table.delete(row)
+
+    # Connect to the database
     conn = sqlite3.connect('fishdex.db')
     cursor = conn.cursor()
+
+    # SQL query to fetch the required data
     cursor.execute('''
-        SELECT speciesID, quantityCaught, orderDiscovered 
-        FROM Species
+        SELECT
+            s.speciesID,  -- Species ID
+            rs.commonName,  -- Common Name from ReferenceSpecies
+            rs.scientificName,  -- Scientific Name from ReferenceSpecies
+            s.quantityCaught,  -- Quantity Caught from Species
+            s.orderDiscovered,  -- Order Discovered from Species
+            MIN(c.datetimeCaught) AS firstCaughtDate,  -- First Date Caught
+            COALESCE(
+                (SELECT l.locationName
+                 FROM CatchLog c2
+                 JOIN Locations l ON c2.locationID = l.locationID
+                 WHERE c2.speciesID = s.speciesID
+                 ORDER BY c2.datetimeCaught ASC
+                 LIMIT 1),
+                'Unknown'
+            ) AS firstLocationDiscovered  -- First Location Discovered
+        FROM Species s
+        LEFT JOIN ReferenceSpecies rs ON s.speciesID = rs.ID
+        LEFT JOIN CatchLog c ON s.speciesID = c.speciesID
+        GROUP BY s.speciesID;
     ''')
     rows = cursor.fetchall()
+
+    # Insert the rows into the Treeview
     for row in rows:
         species_table.insert("", "end", values=row)
+
+    # Close the database connection
     conn.close()
+
 
 # --- New Entry Popup Function ---
 def open_new_entry_popup():
