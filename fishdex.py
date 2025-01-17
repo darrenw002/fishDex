@@ -113,30 +113,42 @@ catch_log_table.configure(yscrollcommand=tree_scroll_y.set)
 
 
 # --- Species Tab ---
+# --- Species Tab ---
 species_tab = ttk.Frame(notebook)
 notebook.add(species_tab, text="Species")
 
+# Search Bar Frame for Species Tab
 species_search_frame = ttk.Frame(species_tab)
 species_search_frame.pack(fill="x", pady=5)
 
+# Search Bar
 species_search = ttk.Entry(species_search_frame, width=50)
 species_search.pack(side="left", padx=5)
 
+# Bind Search Bar to Species Refresh Function
+species_search.bind("<KeyRelease>", lambda e: refresh_species(filter_text=species_search.get()))
+
+# Treeview for Species Tab
 species_table = ttk.Treeview(
     species_tab,
     columns=("Species ID", "Common Name", "Scientific Name", "Quantity Caught", "Order Discovered", "First Caught Date", "First Location Discovered"),
     show="headings"
 )
-species_table.heading("Species ID", text="Species ID")
-species_table.heading("Common Name", text="Common Name")
-species_table.heading("Scientific Name", text="Scientific Name")
-species_table.heading("Quantity Caught", text="Quantity Caught")
-species_table.heading("Order Discovered", text="Order Discovered")
-species_table.heading("First Caught Date", text="First Caught Date")
-species_table.heading("First Location Discovered", text="First Location Discovered")
+# Define column headings with sorting functionality
+species_table.heading("Species ID", text="Species ID", command=lambda: treeview_sort_column(species_table, "Species ID", False))
+species_table.heading("Common Name", text="Common Name", command=lambda: treeview_sort_column(species_table, "Common Name", False))
+species_table.heading("Scientific Name", text="Scientific Name", command=lambda: treeview_sort_column(species_table, "Scientific Name", False))
+species_table.heading("Quantity Caught", text="Quantity Caught", command=lambda: treeview_sort_column(species_table, "Quantity Caught", False))
+species_table.heading("Order Discovered", text="Order Discovered", command=lambda: treeview_sort_column(species_table, "Order Discovered", False))
+species_table.heading("First Caught Date", text="First Caught Date", command=lambda: treeview_sort_column(species_table, "First Caught Date", False))
+species_table.heading("First Location Discovered", text="First Location Discovered", command=lambda: treeview_sort_column(species_table, "First Location Discovered", False))
 species_table.pack(fill="both", expand=True, pady=5)
 
-species_table.pack(fill="both", expand=True, pady=5)
+# Scrollbars for Treeview
+species_scroll_y = ttk.Scrollbar(species_tab, orient="vertical", command=species_table.yview)
+species_scroll_y.pack(side="right", fill="y")
+species_table.configure(yscrollcommand=species_scroll_y.set)
+
 
 # --- Functions to Refresh Data ---
 def refresh_catch_log(filter_text=""):
@@ -181,8 +193,8 @@ def refresh_catch_log(filter_text=""):
     conn.close()
 
 
-
-def refresh_species():
+def refresh_species(filter_text=""):
+    """Refresh the Species Treeview and optionally filter rows."""
     # Clear the existing rows in the Treeview
     for row in species_table.get_children():
         species_table.delete(row)
@@ -216,12 +228,21 @@ def refresh_species():
     ''')
     rows = cursor.fetchall()
 
+    # Filter rows if a search filter is provided
+    if filter_text.strip():
+        filter_text = filter_text.lower()
+        rows = [
+            row for row in rows
+            if any(filter_text in str(value).lower() for value in row)
+        ]
+
     # Insert the rows into the Treeview
     for row in rows:
         species_table.insert("", "end", values=row)
 
     # Close the database connection
     conn.close()
+
 
 
 # --- New Entry Popup Function ---
