@@ -174,8 +174,10 @@ def open_new_entry_popup():
                 entry_widget.insert(0, selected[1] if field == "commonName" else selected[2])
                 other_entry.delete(0, "end")
                 other_entry.insert(0, selected[2] if field == "commonName" else selected[1])
+                id_entry.config(state="normal")  # Allow programmatic update
                 id_entry.delete(0, "end")
                 id_entry.insert(0, selected[0])
+                id_entry.config(state="readonly")  # Prevent further edits
                 dropdown.place_forget()  # Hide dropdown after selection
 
         dropdown.bind("<<ListboxSelect>>", on_select)
@@ -208,9 +210,9 @@ def open_new_entry_popup():
     species_name_entry.bind("<FocusIn>", lambda e: species_name_dropdown.lift())
     species_name_entry.bind("<FocusOut>", lambda e: species_name_dropdown.place_forget())
 
-    # Fish ID Field
+    # Fish ID Field (Read-only)
     tk.Label(popup, text="Fish ID:").pack(pady=5)
-    fish_id_entry = ttk.Entry(popup, width=30)
+    fish_id_entry = ttk.Entry(popup, width=30, state="readonly")
     fish_id_entry.pack(pady=5)
 
     # Location Field
@@ -309,6 +311,10 @@ def open_new_entry_popup():
             refresh_species()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to add entry: {e}")
+
+    ttk.Button(popup, text="Submit", command=submit_entry).pack(pady=10)
+    ttk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
+
 
     ttk.Button(popup, text="Submit", command=submit_entry).pack(pady=10)
     ttk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
