@@ -335,6 +335,11 @@ def open_new_entry_popup():
     popup = tk.Toplevel(root)
     popup.title("New Entry")
     popup.geometry("400x500")
+    
+        # Ensure the popup stays on top of the main window
+    popup.transient(root)  # Make the popup a "child" of the main window
+    popup.grab_set()       # Prevent interaction with the main window
+    popup.focus_set()      # Focus on the popup window
 
     def fetch_suggestions(field, value):
         """Fetch suggestions for autosuggestion dropdown."""
