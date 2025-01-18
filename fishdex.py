@@ -2,6 +2,7 @@ import sqlite3
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import datetime
+import tkinter.font as tkFont
 
 # --- Database Setup ---
 conn = sqlite3.connect('fishdex.db')
@@ -151,6 +152,17 @@ species_table.configure(yscrollcommand=species_scroll_y.set)
 
 
 # --- Functions to Refresh Data ---
+def adjust_treeview_column_width(treeview):
+    """Dynamically adjust column widths based on content."""
+    font = tkFont.Font()  # Default font for Treeview
+    for col in treeview["columns"]:
+        max_width = font.measure(col)  # Start with the column header width
+        for child in treeview.get_children():
+            item_text = str(treeview.set(child, col))
+            max_width = max(max_width, font.measure(item_text))
+        # Add some padding
+        treeview.column(col, width=max_width + 20)
+
 def refresh_catch_log(filter_text=""):
     """Refresh the Catch Log Treeview and optionally filter rows."""
     # Clear the existing rows in the Treeview
@@ -161,13 +173,13 @@ def refresh_catch_log(filter_text=""):
     conn = sqlite3.connect('fishdex.db')
     cursor = conn.cursor()
 
-    # SQL query to fetch data with default sorting by catchID DESC
+    # SQL query to fetch data with default sorting by Catch ID descending
     query = '''
         SELECT
             c.catchID,  -- Catch ID
             '[Photo]' AS photo,  -- Placeholder for Photo Thumbnail
             rs.commonName,  -- Common Name
-            rs.scientificName AS scientificName,  -- Scientific Name
+            rs.scientificName AS scientificName,  -- Full Scientific Name
             c.datetimeCaught,  -- Datetime Caught
             COALESCE(l.locationName, 'Unknown') AS locationName  -- Location Name
         FROM CatchLog c
@@ -193,6 +205,9 @@ def refresh_catch_log(filter_text=""):
     # Close the database connection
     conn.close()
 
+    # Adjust column widths dynamically
+    adjust_treeview_column_width(catch_log_table)
+
 
 
 def refresh_species(filter_text=""):
@@ -205,7 +220,7 @@ def refresh_species(filter_text=""):
     conn = sqlite3.connect('fishdex.db')
     cursor = conn.cursor()
 
-    # SQL query to fetch data with default sorting by orderDiscovered DESC
+    # SQL query to fetch data with default sorting by Order Discovered descending
     cursor.execute('''
         SELECT
             s.speciesID,  -- Species ID
@@ -239,14 +254,15 @@ def refresh_species(filter_text=""):
             if any(filter_text in str(value).lower() for value in row)
         ]
 
-    # Insert the rows into the Treeview
+    # Insert rows into the Treeview
     for row in rows:
         species_table.insert("", "end", values=row)
 
     # Close the database connection
     conn.close()
 
-
+    # Adjust column widths dynamically
+    adjust_treeview_column_width(species_table)
 
 
 # --- New Entry Popup Function ---
