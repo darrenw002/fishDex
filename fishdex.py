@@ -319,7 +319,18 @@ def refresh_species(filter_text=""):
     adjust_treeview_column_width(species_table)
 
 
+
 # --- New Entry Popup Function ---
+def fetch_location_suggestions(value):
+    """Fetch suggestions for the location field."""
+    conn = sqlite3.connect('fishdex.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT locationName FROM Locations WHERE locationName LIKE ? LIMIT 10", (f"%{value}%",))
+    suggestions = cursor.fetchall()
+    conn.close()
+    return [suggestion[0] for suggestion in suggestions]
+
+
 def open_new_entry_popup():
     popup = tk.Toplevel(root)
     popup.title("New Entry")
@@ -416,6 +427,47 @@ def open_new_entry_popup():
     tk.Label(popup, text="Location Name:").pack(pady=5)
     location_name_entry = ttk.Entry(popup, width=30)
     location_name_entry.pack(pady=5)
+    location_dropdown = tk.Listbox(popup, height=5)
+
+    def show_location_suggestions(event):
+        """Update and display dropdown under the location entry field."""
+        value = location_name_entry.get()
+        if not value.strip():
+            location_dropdown.place_forget()  # Hide dropdown when input is empty
+            return
+
+        suggestions = fetch_location_suggestions(value)
+        if not suggestions:
+            location_dropdown.place_forget()  # Hide dropdown if no suggestions
+            return
+
+        # Populate dropdown with suggestions
+        location_dropdown.delete(0, "end")
+        for suggestion in suggestions:
+            location_dropdown.insert("end", suggestion)
+
+        # Position the dropdown directly below the entry widget
+        x = location_name_entry.winfo_x()
+        y = location_name_entry.winfo_y() + location_name_entry.winfo_height()
+        location_dropdown.place(x=x, y=y, width=location_name_entry.winfo_width())
+        location_dropdown.lift()  # Bring the dropdown to the top layer
+
+    def on_location_select(event):
+        """Handle selection from location dropdown."""
+        selected_index = location_dropdown.curselection()
+        if selected_index:
+            selected = location_dropdown.get(selected_index)
+            location_name_entry.delete(0, "end")
+            location_name_entry.insert(0, selected)
+            location_dropdown.place_forget()  # Hide dropdown after selection
+
+    location_dropdown.bind("<<ListboxSelect>>", on_location_select)
+
+    # Bind location entry field to show suggestions
+    location_name_entry.bind("<KeyRelease>", show_location_suggestions)
+    location_name_entry.bind("<FocusIn>", lambda e: location_dropdown.lift())
+    location_name_entry.bind("<FocusOut>", lambda e: location_dropdown.place_forget())
+
 
     # Datetime Field
     tk.Label(popup, text="Datetime (YYYY-MM-DD HH:MM):").pack(pady=5)
