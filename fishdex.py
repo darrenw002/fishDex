@@ -98,16 +98,16 @@ catch_log_search.bind("<KeyRelease>", lambda e: refresh_catch_log(filter_text=ca
 # Treeview for Catch Log
 catch_log_table = ttk.Treeview(
     catch_log_tab,
-    columns=("Catch ID", "Photo", "Common Name", "Scientific Name", "Datetime Caught", "Location"),
+    columns=("Catch ID", "Common Name", "Scientific Name", "Datetime Caught", "Location"),
     show="headings"
 )
 catch_log_table.heading("Catch ID", text="Catch Number", command=lambda: treeview_sort_column(catch_log_table, "Catch ID", False))
-catch_log_table.heading("Photo", text="Thumbnail")  # No sorting for Photo column
 catch_log_table.heading("Common Name", text="Common Name", command=lambda: treeview_sort_column(catch_log_table, "Common Name", False))
 catch_log_table.heading("Scientific Name", text="Scientific Name", command=lambda: treeview_sort_column(catch_log_table, "Scientific Name", False))
 catch_log_table.heading("Datetime Caught", text="Date Caught", command=lambda: treeview_sort_column(catch_log_table, "Datetime Caught", False))
 catch_log_table.heading("Location", text="Location Caught", command=lambda: treeview_sort_column(catch_log_table, "Location", False))
 catch_log_table.pack(fill="both", expand=True, pady=5)
+
 
 def on_catch_log_row_click(event):
     """Handle row click in Catch Log to display full-size image or a no-image message."""
@@ -231,7 +231,6 @@ def refresh_catch_log(filter_text=""):
     query = '''
         SELECT
             c.catchID,  -- Catch ID
-            '[Photo]' AS photo,  -- Placeholder for Photo Thumbnail
             rs.commonName,  -- Common Name
             rs.scientificName AS scientificName,  -- Full Scientific Name
             c.datetimeCaught,  -- Datetime Caught
@@ -261,6 +260,7 @@ def refresh_catch_log(filter_text=""):
 
     # Adjust column widths dynamically
     adjust_treeview_column_width(catch_log_table)
+
 
 
 
@@ -494,8 +494,8 @@ def open_new_entry_popup():
                 image = image.convert("RGB")
 
             # Set maximum dimensions
-            max_width = 600
-            max_height = 600
+            max_width = 1000
+            max_height = 1000
 
             # Resize while preserving aspect ratio
             image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
