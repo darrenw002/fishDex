@@ -98,13 +98,14 @@ catch_log_table = ttk.Treeview(
     columns=("Catch ID", "Photo", "Common Name", "Scientific Name", "Datetime Caught", "Location"),
     show="headings"
 )
-catch_log_table.heading("Catch ID", text="Catch ID", command=lambda: treeview_sort_column(catch_log_table, "Catch ID", False))
-catch_log_table.heading("Photo", text="Photo")  # No sorting for Photo column
+catch_log_table.heading("Catch ID", text="Catch Number", command=lambda: treeview_sort_column(catch_log_table, "Catch ID", False))
+catch_log_table.heading("Photo", text="Thumbnail")  # No sorting for Photo column
 catch_log_table.heading("Common Name", text="Common Name", command=lambda: treeview_sort_column(catch_log_table, "Common Name", False))
 catch_log_table.heading("Scientific Name", text="Scientific Name", command=lambda: treeview_sort_column(catch_log_table, "Scientific Name", False))
-catch_log_table.heading("Datetime Caught", text="Datetime Caught", command=lambda: treeview_sort_column(catch_log_table, "Datetime Caught", False))
-catch_log_table.heading("Location", text="Location", command=lambda: treeview_sort_column(catch_log_table, "Location", False))
+catch_log_table.heading("Datetime Caught", text="Date Caught", command=lambda: treeview_sort_column(catch_log_table, "Datetime Caught", False))
+catch_log_table.heading("Location", text="Location Caught", command=lambda: treeview_sort_column(catch_log_table, "Location", False))
 catch_log_table.pack(fill="both", expand=True, pady=5)
+
 
 # Scrollbars for Treeview
 tree_scroll_y = ttk.Scrollbar(catch_log_tab, orient="vertical", command=catch_log_table.yview)
@@ -112,7 +113,6 @@ tree_scroll_y.pack(side="right", fill="y")
 catch_log_table.configure(yscrollcommand=tree_scroll_y.set)
 
 
-# --- Species Tab ---
 # --- Species Tab ---
 species_tab = ttk.Frame(notebook)
 notebook.add(species_tab, text="Species")
@@ -134,15 +134,15 @@ species_table = ttk.Treeview(
     columns=("Species ID", "Common Name", "Scientific Name", "Quantity Caught", "Order Discovered", "First Caught Date", "First Location Discovered"),
     show="headings"
 )
-# Define column headings with sorting functionality
 species_table.heading("Species ID", text="Species ID", command=lambda: treeview_sort_column(species_table, "Species ID", False))
 species_table.heading("Common Name", text="Common Name", command=lambda: treeview_sort_column(species_table, "Common Name", False))
 species_table.heading("Scientific Name", text="Scientific Name", command=lambda: treeview_sort_column(species_table, "Scientific Name", False))
 species_table.heading("Quantity Caught", text="Quantity Caught", command=lambda: treeview_sort_column(species_table, "Quantity Caught", False))
 species_table.heading("Order Discovered", text="Order Discovered", command=lambda: treeview_sort_column(species_table, "Order Discovered", False))
-species_table.heading("First Caught Date", text="First Caught Date", command=lambda: treeview_sort_column(species_table, "First Caught Date", False))
-species_table.heading("First Location Discovered", text="First Location Discovered", command=lambda: treeview_sort_column(species_table, "First Location Discovered", False))
+species_table.heading("First Caught Date", text="Date Discovered", command=lambda: treeview_sort_column(species_table, "First Caught Date", False))
+species_table.heading("First Location Discovered", text="Location Discovered", command=lambda: treeview_sort_column(species_table, "First Location Discovered", False))
 species_table.pack(fill="both", expand=True, pady=5)
+
 
 # Scrollbars for Treeview
 species_scroll_y = ttk.Scrollbar(species_tab, orient="vertical", command=species_table.yview)
