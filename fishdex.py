@@ -3,6 +3,8 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import datetime
 import tkinter.font as tkFont
+from PIL import Image, ImageTk
+
 
 # --- Database Setup ---
 conn = sqlite3.connect('fishdex.db')
@@ -107,6 +109,58 @@ catch_log_table.heading("Datetime Caught", text="Date Caught", command=lambda: t
 catch_log_table.heading("Location", text="Location Caught", command=lambda: treeview_sort_column(catch_log_table, "Location", False))
 catch_log_table.pack(fill="both", expand=True, pady=5)
 
+def on_catch_log_row_click(event):
+    """Handle row click in Catch Log to display full-size image or a no-image message."""
+    # Get selected item
+    selected_item = catch_log_table.selection()
+    if not selected_item:
+        return
+
+    # Get the Catch ID from the selected row
+    catch_id = catch_log_table.item(selected_item, "values")[0]
+
+    # Query the database for the photo blob
+    conn = sqlite3.connect('fishdex.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT photo FROM CatchLog WHERE catchID = ?", (catch_id,))
+    result = cursor.fetchone()
+    conn.close()
+
+    # Check if a photo exists and is a valid binary object
+    if result and isinstance(result[0], (bytes, bytearray)):  # Ensure it's a binary object
+        photo_blob = result[0]
+        # Create a popup to display the image
+        popup = tk.Toplevel(root)
+        popup.title(f"Catch ID: {catch_id} Photo")
+
+        # Convert blob to an image and display it
+        from PIL import Image, ImageTk
+        import io
+
+        try:
+            image = Image.open(io.BytesIO(photo_blob))
+            # Get image dimensions and set the popup size dynamically
+            img_width, img_height = image.size
+            popup.geometry(f"{img_width}x{img_height}")  # Resize popup to match image dimensions
+            photo_image = ImageTk.PhotoImage(image)
+
+            label = tk.Label(popup, image=photo_image)
+            label.image = photo_image  # Keep a reference to avoid garbage collection
+            label.pack(fill="both", expand=True)
+
+        except Exception as e:
+            # Handle corrupted image data
+            popup.destroy()
+            messagebox.showerror("Error", f"Unable to display image for Catch ID: {catch_id}\n{e}")
+
+    else:  # No valid photo available
+        messagebox.showinfo("No Image", f"No image available for Catch ID: {catch_id}")
+
+
+
+
+# Bind the row click event
+catch_log_table.bind("<ButtonRelease-1>", on_catch_log_row_click)
 
 # Scrollbars for Treeview
 tree_scroll_y = ttk.Scrollbar(catch_log_tab, orient="vertical", command=catch_log_table.yview)
