@@ -431,10 +431,33 @@ def open_new_entry_popup():
             filetypes=[("Image Files", "*.png;*.jpg;*.jpeg"), ("All Files", "*.*")]
         )
         if file_path:
-            with open(file_path, 'rb') as file:
-                binary_data = file.read()
-            photo_label.photo_data = binary_data  # Store binary data as an attribute
+            from PIL import Image
+            import io
+
+            # Open the image
+            image = Image.open(file_path)
+
+            # Convert RGBA to RGB if necessary
+            if image.mode == "RGBA":
+                image = image.convert("RGB")
+
+            # Set maximum dimensions
+            max_width = 600
+            max_height = 600
+
+            # Resize while preserving aspect ratio
+            image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+
+            # Convert the resized image to binary data (blob)
+            buffer = io.BytesIO()
+            image.save(buffer, format="JPEG")  # Save as JPEG to reduce size further
+            binary_data = buffer.getvalue()
+
+            # Store the binary data
+            photo_label.photo_data = binary_data
             photo_label.config(text="Photo Selected")
+
+
 
     tk.Label(popup, text="Photo:").pack(pady=5)
     photo_label = tk.Label(popup, text="No file selected", fg="gray")
