@@ -161,7 +161,7 @@ def refresh_catch_log(filter_text=""):
     conn = sqlite3.connect('fishdex.db')
     cursor = conn.cursor()
 
-    # SQL query to fetch data
+    # SQL query to fetch data with default sorting by catchID DESC
     query = '''
         SELECT
             c.catchID,  -- Catch ID
@@ -173,6 +173,7 @@ def refresh_catch_log(filter_text=""):
         FROM CatchLog c
         LEFT JOIN Locations l ON c.locationID = l.locationID
         LEFT JOIN ReferenceSpecies rs ON c.speciesID = rs.ID
+        ORDER BY c.catchID DESC;  -- Default sorting by Catch ID descending
     '''
     cursor.execute(query)
     rows = cursor.fetchall()
@@ -193,6 +194,7 @@ def refresh_catch_log(filter_text=""):
     conn.close()
 
 
+
 def refresh_species(filter_text=""):
     """Refresh the Species Treeview and optionally filter rows."""
     # Clear the existing rows in the Treeview
@@ -203,7 +205,7 @@ def refresh_species(filter_text=""):
     conn = sqlite3.connect('fishdex.db')
     cursor = conn.cursor()
 
-    # SQL query to fetch the required data
+    # SQL query to fetch data with default sorting by orderDiscovered DESC
     cursor.execute('''
         SELECT
             s.speciesID,  -- Species ID
@@ -224,7 +226,8 @@ def refresh_species(filter_text=""):
         FROM Species s
         LEFT JOIN ReferenceSpecies rs ON s.speciesID = rs.ID
         LEFT JOIN CatchLog c ON s.speciesID = c.speciesID
-        GROUP BY s.speciesID;
+        GROUP BY s.speciesID
+        ORDER BY s.orderDiscovered DESC;  -- Default sorting by Order Discovered descending
     ''')
     rows = cursor.fetchall()
 
@@ -242,6 +245,7 @@ def refresh_species(filter_text=""):
 
     # Close the database connection
     conn.close()
+
 
 
 
