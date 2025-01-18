@@ -45,7 +45,7 @@ conn.close()
 # --- Tkinter UI ---
 root = tk.Tk()
 root.title("FishDex")
-root.geometry("800x600")  # Set window size
+root.geometry("1000x600")  # Set window size
 
 notebook = ttk.Notebook(root)
 notebook.pack(fill="both", expand=True)
@@ -161,7 +161,7 @@ def adjust_treeview_column_width(treeview):
             item_text = str(treeview.set(child, col))
             max_width = max(max_width, font.measure(item_text))
         # Add some padding
-        treeview.column(col, width=max_width + 20)
+        treeview.column(col, width=max_width + 0) # Edit +0 for padding
 
 def refresh_catch_log(filter_text=""):
     """Refresh the Catch Log Treeview and optionally filter rows."""
